@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG)
 @app.route('/detect', methods=['POST'])
 def detect():
     logging.debug("Request headers: %s", request.headers)
-    logging.debug("Request data: %s", request.data)
+    logging.debug("Request form data: %s", request.form)
 
     # Check if the request contains any files
     if 'imagefiles' not in request.files:
@@ -25,13 +25,12 @@ def detect():
     if len(imagefiles) == 0:
         return jsonify({'error': 'No files uploaded'}), 400
 
-    # Get the reference image URL from the JSON data
-    data = request.get_json()
-    if not data or 'reference_image_url' not in data:
+    # Get the reference image URL from the form data
+    reference_image_url = request.form.get('reference_image_url')
+    if not reference_image_url:
         return jsonify({'error': 'No reference image URL provided'}), 400
 
-    reference_image_url = data['reference_image_url']
-    logging.debug("Downloading reference image from URL: %s", reference_image_url)
+    logging.debug("Reference image URL from form data: %s", reference_image_url)
 
     # Download the reference image
     try:
