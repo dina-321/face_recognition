@@ -12,24 +12,28 @@ sfr = SimpleFacerec()
 
 logging.basicConfig(level=logging.DEBUG)
 
-@app.route('/upload_reference', methods=['POST'])
-def upload_reference():
+@app.route('/detect', methods=['POST'])
+def detect():
     logging.debug("Request headers: %s", request.headers)
     logging.debug("Request data: %s", request.data)
 
-    if not request.is_json:
-        logging.debug("Request is not JSON")
-        return jsonify({'error': 'Invalid content type. Expected application/json'}), 400
+    # Check if the request contains any files
+    if 'imagefiles' not in request.files:
+        return jsonify({'error': 'No files uploaded'}), 400
 
+    imagefiles = request.files.getlist('imagefiles')
+    if len(imagefiles) == 0:
+        return jsonify({'error': 'No files uploaded'}), 400
+
+    # Get the reference image URL from the JSON data
     data = request.get_json()
-    logging.debug("Request JSON: %s", data)
-
     if not data or 'reference_image_url' not in data:
         return jsonify({'error': 'No reference image URL provided'}), 400
 
     reference_image_url = data['reference_image_url']
     logging.debug("Downloading reference image from URL: %s", reference_image_url)
 
+    # Download the reference image
     try:
         response = requests.get(reference_image_url, stream=True)
         response.raise_for_status()
@@ -37,6 +41,7 @@ def upload_reference():
         logging.error("Failed to download reference image: %s", e)
         return jsonify({'error': 'Failed to download reference image', 'details': str(e)}), 400
 
+    # Create a temporary file to store the reference image
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
     temp_file_path = temp_file.name
     with open(temp_file_path, 'wb') as f:
@@ -45,23 +50,16 @@ def upload_reference():
 
     temp_file.close()
 
+    # Load the reference image
     load_result = sfr.load_reference_image(temp_file_path)
     if load_result == "no face found":
         os.unlink(temp_file_path)
         return jsonify({'error': 'No face found in the reference image'}), 400
 
+    # Delete the temporary file
     os.unlink(temp_file_path)
-    return jsonify({'message': 'Reference image uploaded successfully'})
 
-@app.route('/detect', methods=['POST'])
-def detect():
-    if 'imagefiles' not in request.files:
-        return jsonify({'error': 'No files uploaded'}), 400
-
-    imagefiles = request.files.getlist('imagefiles')
-    if len(imagefiles) == 0:
-        return jsonify({'error': 'No files uploaded'}), 400
-
+    # Compare each image with the reference image
     results = []
     for image_file in imagefiles:
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
