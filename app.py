@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 import tempfile
 import os
 import cv2
+import cloudinary
+import cloudinary.uploader
 from function import SimpleFacerec
 import requests
 import logging
