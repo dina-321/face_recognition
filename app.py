@@ -67,7 +67,12 @@ def detect():
         temp_file.close()
 
         result = sfr.compare_with_reference(temp_file_path)
-        results.append(result)
+        if result == "match":
+            results.append({'result': result})
+        else:
+            upload_result = cloudinary.uploader.upload(temp_file_path)
+            url = upload_result['url']
+            results.append({'image': url})
 
         os.unlink(temp_file_path)
 
