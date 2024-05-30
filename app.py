@@ -8,7 +8,7 @@ import logging
 
 app = Flask(__name__)
 
-sfr = SimpleFacerec()  # Create an instance of SimpleFacerec
+sfr = SimpleFacerec()
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -32,7 +32,7 @@ def upload_reference():
 
     try:
         response = requests.get(reference_image_url, stream=True)
-        response.raise_for_status()  # Raise an HTTPError if the HTTP request returned an unsuccessful status code
+        response.raise_for_status()
     except requests.exceptions.RequestException as e:
         logging.error("Failed to download reference image: %s", e)
         return jsonify({'error': 'Failed to download reference image', 'details': str(e)}), 400
@@ -45,11 +45,12 @@ def upload_reference():
 
     temp_file.close()
 
-    # Set the reference image for face comparison
-    sfr.load_reference_image(temp_file_path)
+    load_result = sfr.load_reference_image(temp_file_path)
+    if load_result == "no face found":
+        os.unlink(temp_file_path)
+        return jsonify({'error': 'No face found in the reference image'}), 400
 
-    os.unlink(temp_file_path)  # Delete temporary file
-
+    os.unlink(temp_file_path)
     return jsonify({'message': 'Reference image uploaded successfully'})
 
 @app.route('/detect', methods=['POST'])
@@ -67,11 +68,11 @@ def detect():
         temp_file_path = temp_file.name
         image_file.save(temp_file_path)
         temp_file.close()
-    
+
         result = sfr.compare_with_reference(temp_file_path)
         results.append(result)
 
-        os.unlink(temp_file_path)  # Delete temporary file
+        os.unlink(temp_file_path)
 
     return jsonify(results)
 
