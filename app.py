@@ -74,7 +74,7 @@ def detect():
         else:
             upload_result = cloudinary.uploader.upload(temp_file_path)
             url = upload_result['url']
-            results.append({'image': url})
+            results.append({'result': "not match", 'image': url})
 
         os.unlink(temp_file_path)
 
